@@ -1,70 +1,91 @@
-# Getting Started with Create React App
+# MovieStream — Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Mô tả ngắn: Dự án website xem phim (MovieStream) được xây dựng bằng React + Vite. Ứng dụng hiển thị phim từ [TMDB](https://www.themoviedb.org/?language=vi) và từ backend hệ thống (system films), hỗ trợ đăng nhập / đăng ký, playlist, bình luận, quản trị (admin) và xem phim (player + lưu lịch sử xem).
 
-## Available Scripts
+## Những tính năng chính
+- Trang demo / Featured: hiển thị phim trending từ TMDB.
+- Home: duyệt phim (TMDB hoặc system), tìm kiếm, bộ lọc (thể loại, ngày phát hành), playlist và lịch sử xem.
+- Xem chi tiết phim: `TmdbFilmDetail` (TMDB) và `SystemFilmDetail` (system films) — hiển thị thông tin, trailer, review, comment, like/dislike.
+- Xem phim: trang `WatchFilm` (YouTube/embed hoặc video/iframe cho system films) với lưu thời gian xem.
+- Authentication: `Login` / `Signup`, cookie-based session, quản lý thông tin người dùng (`UserDetail`).
+- Admin: dashboard, upload/update system films, thống kê (popular hours, top views/likes).
+- Thông báo thời gian thực bằng WebSocket/STOMP (`NotificationContext`).
 
-In the project directory, you can run:
+## Kiến trúc & thư mục chính (thư mục `src/`)
+- `src/pages` / `src/Pages`: các trang chính — `DemoPage`, `Home`, `Login`, `Signup`, `UserDetail`, `TmdbFilmDetail`, `SystemFilmDetail`, `WatchFilm`, `Admin`, `UploadSystemFilm`, `UpdateSystemFilm`.
+- `src/components`: các component dùng lại (Header, Footer, Movie, MovieList, Playlist, Bookmark, Comment, Video, Image, SlideShowTopMovie, FeaturedMovie, Loading animations, Charts, v.v.).
+- `src/context`: providers cho `AuthUserContext`, `NotificationContext`, `PageTransitionContext`.
+- `src/services/api_service`: helper fetch (`FetchMoviesApi.jsx`) để gọi API với params/options.
+- `src/constants`: URL templates cho TMDB và map API hệ thống/menu.
+- `src/utils`: helper nhỏ (`formatDate.js`, `convertDataURLtoFile.js`, `cropImage.js`).
 
-### `npm start`
+## Các route chính
+- `/` → `DemoPage` (landing/demo)
+- `/home` → `Home`
+- `/login` → `Login`
+- `/signup` → `Signup`
+- `/my-info` → `UserDetail`
+- `/watch-detail/theatrical-movie/:tmdbFilmId` → `TmdbFilmDetail`
+- `/watch-detail/hot-movies/:systemFilmId` → `SystemFilmDetail`
+- `/watch/:videoKey` → `WatchFilm`
+- `/admin` → `Admin` (và `/admin/upload-film`, `/admin/update-film/:systemFilmId`)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Thư viện & công nghệ chính
+- React + Vite
+- Tailwind CSS
+- React Router v6
+- Framer Motion (animation)
+- Recharts (chart component)
+- react-hook-form (form validation)
+- STOMP over SockJS (`@stomp/stompjs`, `sockjs-client`) cho real-time notifications
+- js-cookie để lưu cookie/session
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Giao tiếp với backend
+- Các request tới backend sử dụng `fetch` với `credentials: 'include'` (cookie-based auth).
+- Endpoint backend mẫu:
+	- `/api/system-films/summary-list` — danh sách film hệ thống (home, admin)
+	- `/api/users/*` — playlist, profile
+	- `/api/watching/*` — save watching history, increase view
+	- `/api/comment/*` — comment, reply, delete
+	- `/admin/*` — các API quản trị
+- WebSocket STOMP: kết nối đến `${VITE_WEBSITE_BASE_URL}/ws` và subscribe `/topic/new-movie`.
 
-### `npm test`
+## Chạy dự án (local)
+1. Cài đặt dependencies (dự án dùng `pnpm` nhưng `npm`/`yarn` cũng có thể chạy):
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```bash
+pnpm install
+```
 
-### `npm run build`
+2. Chạy chế độ phát triển:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+pnpm dev
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Build production:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+pnpm build
+```
 
-### `npm run eject`
+4. Preview production build (vite):
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+pnpm preview
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Lưu ý: trước khi chạy, tạo file `.env` hoặc cấu hình biến môi trường tương ứng (ví dụ `.env.local`) chứa các `VITE_...` bên môi trường.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Ghi chú vận hành / lưu ý
+- Ứng dụng dùng cookie/session — backend phải bật CORS + credentials phù hợp.
+- Thông báo real-time cần endpoint WebSocket và token (Authorization header trong STOMP connectHeaders).
+- Một số component lưu tạm dữ liệu vào `localStorage` (ví dụ `movieVideos`, `savedTimeList`, `intervalIdsList`).
+- Player: `WatchFilm` dùng YouTube iframe; `SystemFilmDetail` có thể dùng `video` tag hoặc `iframe` nếu `isUseSrc`.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Một số file quan trọng để đọc nhanh
+- `src/App.jsx` — định nghĩa routes chính.
+- `src/index.jsx` — wrap với providers: `NotificationProvider`, `AuthUserProvider`, `PageTransitionProvider`.
+- `src/context/NotificationContext.jsx` — WebSocket + realtime notifications.
+- `src/components/Header/Header.jsx` — header, tìm kiếm, filter, menu user.
+- `src/Pages/Home/Home.jsx` — logic lấy TMDB và system films, playlist, history.
