@@ -7,7 +7,7 @@ import { TiTickOutline } from "react-icons/ti";
 import { Link } from "react-router-dom";
 import { FaArrowCircleRight } from "react-icons/fa";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function NotificationIcon() {
   const [notifications, setNotifications] = useState([]);
@@ -19,12 +19,8 @@ export default function NotificationIcon() {
   const deleteUserNotification = async (notificationId) => {
     setLoading(notificationId);
     try {
-      await fetch(
-        `${website_base_url}/api/user-notification/delete?notificationId=${notificationId}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
+      await axiosClient.delete(
+        `/user-notification/delete?notificationId=${notificationId}`,
       );
       const newNotifications = notifications.filter(
         (n) => n.id !== notificationId,
@@ -40,14 +36,7 @@ export default function NotificationIcon() {
   const clearAllNotification = async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `${website_base_url}/api/user-notification/clear-all`,
-        {
-          method: "DELETE",
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
+      const data = await axiosClient.delete("/user-notification/clear-all");
       setNotifications([]);
       showNotification("success", data.message);
     } catch (err) {
@@ -61,14 +50,7 @@ export default function NotificationIcon() {
     const getAllUserNotification = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${website_base_url}/api/user-notification/get-all`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
-        const data = await res.json();
+        const data = await axiosClient.get("/user-notification/get-all");
         setNotifications(data.results);
       } catch (err) {
         showNotification("error", err.message);

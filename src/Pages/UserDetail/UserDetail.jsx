@@ -3,6 +3,7 @@ import { FaUserCircle } from "react-icons/fa";
 import Header from "../../components/Header/Header";
 import { useNotification } from "../../context/NotificationContext";
 import { useUserContext } from "../../context/AuthUserContext";
+import axiosClient from "../../libs/axiosClient";
 
 const UserDetail = () => {
   const [image, setImage] = useState(null);
@@ -16,19 +17,10 @@ const UserDetail = () => {
 
   const authenticatePassword = (e) => {
     const fetchPassword = async () => {
-      const res = await fetch(
-        `${import.meta.env.VITE_WEBSITE_BASE_URL}/auth/authenticate-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: authUser.email,
-            password: e.target.value,
-          }),
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
+      const data = await axiosClient.post("/auth/authenticate-password", {
+        email: authUser.email,
+        password: e.target.value,
+      });
       setAuthenticatedPassword(data.code === 2000);
     };
     if (e.target.value) fetchPassword();
@@ -52,21 +44,9 @@ const UserDetail = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_WEBSITE_BASE_URL}/users/update-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: newPassword }),
-          credentials: "include",
-        },
-      );
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to update password.");
-      }
-
-      const data = await res.json();
+      const data = await axiosClient.post("/users/update-password", {
+        password: newPassword,
+      });
       showNotification("success", data.message);
       setPasswordChangingBox(false);
     } catch (err) {
@@ -83,21 +63,11 @@ const UserDetail = () => {
     formData.append("avatarFile", avatarFile);
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_WEBSITE_BASE_URL}/users/update`,
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
+      const data = await axiosClient.post("/users/update", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
         },
-      );
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Failed to upload avatar.");
-      }
-
-      const data = await res.json();
+      });
       saveAuthUser(data.results);
       showNotification(
         "success",

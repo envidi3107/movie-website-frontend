@@ -11,7 +11,8 @@ import { useNotification } from "../../context/NotificationContext";
 import { usePageTransition } from "../../context/PageTransitionContext";
 import PulseAnimation from "../../components/LoadingAnimation/PulseAnimation/PulseAnimation";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../../libs/axiosClient";
+import axios from "axios";
 
 function Admin() {
   const [topFilm, setTopFilm] = useState({
@@ -57,32 +58,17 @@ function Admin() {
       try {
         let response = null;
         if (topFilm.type === "Top view") {
-          response = await fetch(
-            `${website_base_url}/films/top-view-film?size=${topFilm.limit}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-            },
+          response = await axiosClient.get(
+            `/films/top-view-film?size=${topFilm.limit}`,
           );
         } else {
-          response = await fetch(
-            `${website_base_url}/films/top-like-film?size=${topFilm.limit}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              credentials: "include",
-            },
+          response = await axiosClient.get(
+            `/films/top-like-film?size=${topFilm.limit}`,
           );
         }
-        const data = await response.json();
         setTopFilm((prev) => ({
           ...prev,
-          topFilmData: data.results,
+          topFilmData: response.results,
         }));
       } catch (error) {
         showNotification("error", error.message);
@@ -94,19 +80,8 @@ function Admin() {
   useEffect(() => {
     const fetchPopularHours = async () => {
       try {
-        const res = await fetch(`${website_base_url}/admin/popular-hours`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message);
-        }
-        const data = await res.json();
-        console.log("watching:", data.results);
+        const data = await axiosClient.get("/admin/popular-hours");
+        console.log("popular hours:", data.results);
         setPopularHours(data.results);
       } catch (error) {
         showNotification("error", error.message);
@@ -118,21 +93,9 @@ function Admin() {
   useEffect(() => {
     const fetchNewUserData = async () => {
       try {
-        const res = await fetch(
-          `${website_base_url}/admin/users/registrations/monthly`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          },
+        const data = await axiosClient.get(
+          "/admin/users/registrations/monthly",
         );
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message);
-        }
-        const data = await res.json();
         setNewUserData(data.results);
       } catch (error) {
         showNotification("error", error.message);
@@ -146,17 +109,9 @@ function Admin() {
     const fetchAllUser = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `${website_base_url}/admin/get-users?page=${pageNumber}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          },
+        const data = await axiosClient.get(
+          `/admin/get-users?page=${pageNumber}`,
         );
-        const data = await response.json();
         setAllUserData(data.results);
       } catch (error) {
         showNotification("error", error.message);
@@ -174,17 +129,7 @@ function Admin() {
     const fetchMovies = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `${website_base_url}/api/system-films/summary-list?page=${pageNumber}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
-          },
-        );
-        const data = await response.json();
+        const data = await axiosClient.get(`/films/all?page=${pageNumber}`);
         setMovies(data.results);
       } catch (error) {
         console.error("Error fetching movies:", error);

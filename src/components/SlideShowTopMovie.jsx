@@ -6,7 +6,7 @@ import { useNotification } from "../context/NotificationContext";
 import { MdNavigateBefore, MdNavigateNext } from "react-icons/md";
 import formatDate from "../utils/formatDate";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 function SlideShowTopMovie() {
   const [isLoading, setLoading] = useState(true);
@@ -17,14 +17,7 @@ function SlideShowTopMovie() {
   useEffect(() => {
     const getTopViewFilm = async () => {
       try {
-        const res = await fetch(
-          `${website_base_url}/films/top-view-film?size=10`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
-        const data = await res.json();
+        const data = await axiosClient.get("/films/top-view-film?size=10");
         setTopViewFilm(data.results);
       } catch (err) {
         showNotification("error", err.message);

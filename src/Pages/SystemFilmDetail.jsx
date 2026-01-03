@@ -14,7 +14,7 @@ import { useUserContext } from "../context/AuthUserContext.jsx";
 import formatDate from "../utils/formatDate.js";
 import { useNavigate } from "react-router-dom";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 function SystemFilmDetail() {
   const navigate = useNavigate();
@@ -40,14 +40,8 @@ function SystemFilmDetail() {
           credentials: "include",
         };
         const results = await Promise.allSettled([
-          fetch(
-            `${website_base_url}/api/system-films/${systemFilmId}/detail`,
-            options,
-          ).then((res) => res.json()),
-          fetch(
-            `${website_base_url}/api/reaction/get-user-reaction`,
-            options,
-          ).then((res) => res.json()),
+          axiosClient.get(`/system-films/${systemFilmId}/detail`),
+          axiosClient.get("/reaction/get-user-reaction"),
         ]);
         let userReactionState = results[1].value.results.find(
           (e) => e.film_id === systemFilmId,
@@ -105,21 +99,11 @@ function SystemFilmDetail() {
         };
       });
 
-      const response = await fetch(
-        `${website_base_url}/api/reaction/save-reaction`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            filmId: systemFilmId,
-            reactionType: reactionType,
-            reactionTime: new Date(),
-          }),
-          credentials: "include",
-        },
-      );
+      await axiosClient.post("/reaction/save-reaction", {
+        filmId: systemFilmId,
+        reactionType: reactionType,
+        reactionTime: new Date(),
+      });
 
       if (!response.ok) {
         throw new Error(await response.text());
@@ -132,12 +116,8 @@ function SystemFilmDetail() {
 
   const saveWatchingHistory = async () => {
     try {
-      const response = await fetch(
-        `${website_base_url}/api/watching/save-watching-history?filmId=${systemFilmId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      await axiosClient.post(
+        `/watching/save-watching-history?filmId=${systemFilmId}`,
       );
 
       if (!response.ok) {
@@ -154,12 +134,8 @@ function SystemFilmDetail() {
     console.log("duration", duration);
     watchedDuration.current = duration;
     try {
-      const response = await fetch(
-        `${website_base_url}/api/watching/save-watched-duration/${systemFilmId}?watchedDuration=${duration}`,
-        {
-          method: "GET",
-          credentials: "include",
-        },
+      await axiosClient.get(
+        `/watching/save-watched-duration/${systemFilmId}?watchedDuration=${duration}`,
       );
 
       if (!response.ok) {
@@ -179,12 +155,8 @@ function SystemFilmDetail() {
     )
       return;
     try {
-      const response = await fetch(
-        `${website_base_url}/films/${systemFilmId}/increase-view?watchedDuration=${duration}&belongTo=SYSTEM_FILM`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      await axiosClient.post(
+        `/films/${systemFilmId}/increase-view?watchedDuration=${duration}&belongTo=SYSTEM_FILM`,
       );
 
       if (!response.ok) {

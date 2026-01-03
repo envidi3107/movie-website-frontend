@@ -6,7 +6,7 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { usePageTransition } from "../context/PageTransitionContext";
 import PageTransition from "./PageTransition";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function UserStat({ allUserData, onUpdateUser, onSetLoading }) {
   const { pageNumber, setPageNumber, nextPage, previousPage } =
@@ -17,17 +17,7 @@ export default function UserStat({ allUserData, onUpdateUser, onSetLoading }) {
   const deleteUser = async (userId) => {
     onSetLoading(true);
     try {
-      const res = await fetch(
-        `${website_base_url}/admin/delete?userId=${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
+      const data = await axiosClient.delete(`/admin/delete?userId=${userId}`);
       let newUserData = allUserData.filter((user) => user.id !== userId);
       onUpdateUser(newUserData);
       showNotification("success", data.message);

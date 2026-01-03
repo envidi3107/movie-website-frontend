@@ -7,7 +7,7 @@ import InputBox from "../../components/InputBox/InputBox.jsx";
 import { useForm } from "react-hook-form";
 import SpinAnimation from "../../components/LoadingAnimation/SpinAnimation/SpinAnimation.jsx";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../../libs/axiosClient";
 
 function Signup() {
   const usernameInput = useRef(null);
@@ -32,18 +32,7 @@ function Signup() {
     delete data.repassword;
     try {
       setLoading(true);
-      const res = await fetch(`${website_base_url}/users/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message);
-      }
-      const result = await res.json();
+      const result = await axiosClient.post("/users/signup", data);
       setLoading(false);
       showNotification("success", result.message);
       setTimeout(() => {

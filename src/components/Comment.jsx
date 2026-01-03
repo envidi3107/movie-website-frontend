@@ -10,7 +10,7 @@ import formatDate from "../utils/formatDate";
 import { useParams } from "react-router-dom";
 import { useNotification } from "../context/NotificationContext";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function Comment({ systemFilmData, onUpdateData }) {
   const { authUser } = useUserContext();
@@ -30,15 +30,9 @@ export default function Comment({ systemFilmData, onUpdateData }) {
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        const res = await fetch(
-          `${website_base_url}/api/comment/film/${systemFilmId}/comment-list`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
+        const data = await axiosClient.get(
+          `/comment/film/${systemFilmId}/comment-list`,
         );
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
         setComments(data);
       } catch (err) {
         showNotification("error", err.message);
@@ -58,19 +52,7 @@ export default function Comment({ systemFilmData, onUpdateData }) {
     };
 
     try {
-      const res = await fetch(`${website_base_url}/api/comment/save-comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(dataRequest),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to comment.");
-      }
-
-      const data = await res.json();
+      const data = await axiosClient.post("/comment/save-comment", dataRequest);
       let newComments;
       if (parentCommentId) {
         newComments = comments.map((comment) => {
@@ -96,22 +78,11 @@ export default function Comment({ systemFilmData, onUpdateData }) {
   const handleEditComment = async (e, commentId, filmId, isReply = false) => {
     e.preventDefault();
     try {
-      const res = await fetch(
-        `${website_base_url}/api/comment/update-comment`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            commentId,
-            filmId,
-            content: isReply ? editingReplyContent : editingContent,
-          }),
-        },
-      );
-
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
+      const data = await axiosClient.post("/comment/update-comment", {
+        commentId,
+        filmId,
+        content: isReply ? editingReplyContent : editingContent,
+      });
 
       const updatedComments = comments.map((comment) => {
         if (isReply && comment.childComments) {
@@ -148,16 +119,9 @@ export default function Comment({ systemFilmData, onUpdateData }) {
     parentId = null,
   ) => {
     try {
-      const res = await fetch(
-        `${website_base_url}/api/comment/delete-comment?commentId=${commentId}&filmId=${filmId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      const data = await axiosClient.post(
+        `/comment/delete-comment?commentId=${commentId}&filmId=${filmId}`,
       );
-
-      if (!res.ok) throw new Error(await res.text());
-      const data = await res.json();
       onUpdateData();
       if (isReply) {
         const updated = comments.map((comment) => {

@@ -13,6 +13,8 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 
+import axiosClient from "../libs/axiosClient";
+
 const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
 const tmdb_base_url = import.meta.env.VITE_TMDB_BASE_URL;
 const api_key = import.meta.env.VITE_API_KEY;
@@ -47,20 +49,18 @@ export default function Dashboard({
 
   const getTopUserLike = async () => {
     try {
-      const res = await fetch(
-        `${website_base_url}/admin/top-user-like?limit=${limitUserLikeTemplate}`,
-        {
-          method: "GET",
-          credentials: "include",
-        },
+      const data = await axiosClient.get(
+        `/admin/top-user-like?limit=${limitUserLikeTemplate}`,
       );
-
-      const data = await res.json();
       setTopUserLike(data.results);
     } catch (err) {
       console.log(err.message);
     }
   };
+
+  useEffect(() => {
+    getTopUserLike();
+  }, [limitUserLikeTemplate]);
 
   return (
     <>
@@ -76,6 +76,10 @@ export default function Dashboard({
           }}
           animation={animateLineChart}
         />
+      </div>
+
+      <div className="w-full h-auto block sm:flex justify-center items-center gap-[10px] mt-[10px]">
+        <PopularHoursChart viewData={popularHours} />
       </div>
 
       <div className="w-full min-h-[300px] border-[1px] border-solid border-[#fff] rounded-[10px] flex flex-col gap-y-[10px] relative p-[10px] my-[20px]">

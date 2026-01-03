@@ -4,7 +4,9 @@ import Image from "./Image/Image";
 import PulseAnimation from "./LoadingAnimation/PulseAnimation/PulseAnimation";
 import Tooltip from "./Tooltip";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
+import axios from "axios";
+
 const tmdb_base_url = import.meta.env.VITE_TMDB_BASE_URL;
 const api_key = import.meta.env.VITE_API_KEY;
 
@@ -16,13 +18,9 @@ const FilmHistory = () => {
   const [loading, setLoading] = useState(true);
   const fetchSystemFilmHistory = async () => {
     try {
-      const res = await fetch(
-        `${website_base_url}/api/watching/get-watching-history/system-film`,
-        {
-          credentials: "include",
-        },
+      const data = await axiosClient.get(
+        "/watching/get-watching-history/system-film",
       );
-      const data = await res.json();
       setSystemFilms(data.results);
     } catch (err) {
       showNotification("error", "Failed to fetch system film history.");
@@ -31,21 +29,17 @@ const FilmHistory = () => {
 
   const fetchTmdbFilmHistory = async () => {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_WEBSITE_BASE_URL}/api/watching/get-watching-history/tmdb-film`,
-        {
-          credentials: "include",
-        },
+      const data = await axiosClient.get(
+        "/watching/get-watching-history/tmdb-film",
       );
-      const data = await res.json();
 
       const tmdbData = await Promise.all(
         (data.results || []).map(async (film) => {
           try {
-            const tmdbRes = await fetch(
+            const tmdbRes = await axios.get(
               `https://api.themoviedb.org/3/movie/${film.tmdbId}?api_key=${api_key}`,
             );
-            const tmdbInfo = await tmdbRes.json();
+            const tmdbInfo = tmdbRes.data;
             return {
               ...film,
               posterPath: `https://image.tmdb.org/t/p/original${tmdbInfo.poster_path}`,

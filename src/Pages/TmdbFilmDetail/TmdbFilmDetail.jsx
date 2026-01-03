@@ -32,7 +32,8 @@ const randomAvatarColor = [
   "#33C1FF",
   "#FF33C1",
 ];
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../../libs/axiosClient";
+import axios from "axios";
 
 function TmdbFilmDetail() {
   const [movieData, setMovieData] = useState({
@@ -53,15 +54,21 @@ function TmdbFilmDetail() {
       try {
         setLoading(true);
         const results = await Promise.allSettled([
-          fetch(
-            `https://api.themoviedb.org/3/movie/${tmdbFilmId}?api_key=${api_key}`,
-          ).then((res) => res.json()),
-          fetch(
-            `https://api.themoviedb.org/3/movie/${tmdbFilmId}/videos?api_key=${api_key}`,
-          ).then((res) => res.json()),
-          fetch(
-            `https://api.themoviedb.org/3/movie/${tmdbFilmId}/reviews?api_key=${api_key}`,
-          ).then((res) => res.json()),
+          axios
+            .get(
+              `https://api.themoviedb.org/3/movie/${tmdbFilmId}?api_key=${api_key}`,
+            )
+            .then((res) => res.data),
+          axios
+            .get(
+              `https://api.themoviedb.org/3/movie/${tmdbFilmId}/videos?api_key=${api_key}`,
+            )
+            .then((res) => res.data),
+          axios
+            .get(
+              `https://api.themoviedb.org/3/movie/${tmdbFilmId}/reviews?api_key=${api_key}`,
+            )
+            .then((res) => res.data),
         ]);
 
         const movieDetail =
@@ -96,18 +103,9 @@ function TmdbFilmDetail() {
 
   const saveWatchHistory = async () => {
     try {
-      const response = await fetch(
-        `${website_base_url}/api/watching/save-watching-history?filmId=${tmdbFilmDetail.id}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      await axiosClient.post(
+        `/watching/save-watching-history?filmId=${tmdbFilmDetail.id}`,
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
     } catch (err) {
       console.log(err.message);
     }
@@ -115,14 +113,9 @@ function TmdbFilmDetail() {
 
   const fetchTmdbFilmDetail = async () => {
     try {
-      const res = await fetch(
-        `${website_base_url}/api/tmdb-films/get?tmdbId=${tmdbFilmId}`,
-        {
-          method: "GET",
-          credentials: "include",
-        },
+      const data = await axiosClient.get(
+        `/tmdb-films/get?tmdbId=${tmdbFilmId}`,
       );
-      const data = await res.json();
       setTmdbFilmDetail(data.results);
     } catch (err) {
       console.log(err.message);
@@ -132,14 +125,7 @@ function TmdbFilmDetail() {
 
   const handleAddTmdbFilm = async () => {
     try {
-      const res = await fetch(
-        `${website_base_url}/api/tmdb-films/add?tmdbId=${tmdbFilmId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
-      );
-      const data = await res.json();
+      await axiosClient.post(`/tmdb-films/add?tmdbId=${tmdbFilmId}`);
       fetchTmdbFilmDetail();
     } catch (err) {
       console.log("error", err.message);
@@ -148,18 +134,9 @@ function TmdbFilmDetail() {
 
   const increaseNumberOfViews = async (duration) => {
     try {
-      const response = await fetch(
-        `${website_base_url}/films/${tmdbFilmDetail.id}/increase-view?watchedDuration=${duration}&belongTo=TMDB_FILM`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      await axiosClient.post(
+        `/films/${tmdbFilmDetail.id}/increase-view?watchedDuration=${duration}&belongTo=TMDB_FILM`,
       );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
     } catch (err) {
       console.log(err.message);
       showNotification("error", err.message);

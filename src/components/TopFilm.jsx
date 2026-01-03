@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 import Bookmark from "./Bookmark";
 
@@ -10,12 +11,11 @@ function TopFilm({ type, filmData }) {
   const [tmdbFilmDetail, setTmdbFilmDetail] = useState(null);
   useEffect(() => {
     const fetchTmdbFilmById = async () => {
-      const res = await fetch(
+      const response = await axios.get(
         `https://api.themoviedb.org/3/movie/${filmData.tmdbId}?api_key=${api_key}`,
       );
 
-      const data = await res.json();
-      setTmdbFilmDetail(data);
+      setTmdbFilmDetail(response.data);
     };
 
     if (filmData.belongTo === "TMDB_FILM") {

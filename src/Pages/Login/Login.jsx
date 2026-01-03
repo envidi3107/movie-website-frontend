@@ -6,9 +6,8 @@ import SpinAnimation from "../../components/LoadingAnimation/SpinAnimation/SpinA
 import { useNotification } from "../../context/NotificationContext.jsx";
 import InputBox from "../../components/InputBox/InputBox";
 import { useForm } from "react-hook-form";
-import Cookies from "js-cookie";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../../libs/axiosClient";
 
 function Login() {
   const emailInput = useRef(null);
@@ -29,21 +28,11 @@ function Login() {
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
-      const res = await fetch(`${website_base_url}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message);
-      }
-      const data = await res.json();
+      const data = await axiosClient.post("/auth/login", formData);
+
       if (data.results.authenticated) {
-        Cookies.set("auth_user", JSON.stringify(data.results), { expires: 1 });
+        localStorage.setItem("token", data.results.token);
+        localStorage.setItem("auth_user", JSON.stringify(data.results));
         navigate("/home");
       }
     } catch (err) {

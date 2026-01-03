@@ -6,7 +6,7 @@ import { useNotification } from "../context/NotificationContext";
 import SpinAnimation from "./LoadingAnimation/SpinAnimation/SpinAnimation";
 import { RiDeleteBin6Line } from "react-icons/ri";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function Bookmark({ filmId, belongTo }) {
   const [userPlaylist, setUserPlaylist] = useState(null);
@@ -19,14 +19,7 @@ export default function Bookmark({ filmId, belongTo }) {
     const fetchAllUserPlaylist = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${website_base_url}/api/playlist/get-user-playlist`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
-        const data = await res.json();
+        const data = await axiosClient.get("/playlist/get-user-playlist");
         setUserPlaylist(data.results);
       } catch (err) {
         showNotification("error", err.message);
@@ -41,20 +34,8 @@ export default function Bookmark({ filmId, belongTo }) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const playlistName = formData.get("playlistName");
-    fetch(
-      `${website_base_url}/api/playlist/create-playlist?playlistName=${playlistName}`,
-      {
-        method: "POST",
-        credentials: "include",
-      },
-    )
-      .then(async (res) => {
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message);
-        }
-        return res.json();
-      })
+    axiosClient
+      .post(`/playlist/create-playlist?playlistName=${playlistName}`)
       .then((data) => {
         setUserPlaylist((prev) => [...prev, data.results]);
         setAddPlaylist(false);
@@ -65,19 +46,12 @@ export default function Bookmark({ filmId, belongTo }) {
 
   const handleAddFilmToPlaylist = async (playlistId) => {
     setLoading(playlistId);
-    fetch(`${website_base_url}/api/users/add-film-to-user-playlist`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    axiosClient
+      .post("/users/add-film-to-user-playlist", {
         playlistId: playlistId,
         filmId: filmId,
         ownerFilm: belongTo,
-      }),
-      credentials: "include",
-    })
-      .then((res) => res.json())
+      })
       .then((data) => showNotification("success", data.message))
       .catch((err) => showNotification("error", err.message))
       .finally(() => setLoading(false));
@@ -85,18 +59,7 @@ export default function Bookmark({ filmId, belongTo }) {
 
   const handleAddTmdbFilm = async () => {
     try {
-      const res = await fetch(
-        `${website_base_url}/api/tmdb-films/add?tmdbId=${filmId}`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
-      );
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message);
-      }
-      const data = await res.json();
+      const data = await axiosClient.post(`/tmdb-films/add?tmdbId=${filmId}`);
       console.log("success", data.message);
     } catch (err) {
       console.log("error", err.message);
@@ -105,14 +68,8 @@ export default function Bookmark({ filmId, belongTo }) {
 
   const handleDeleteUserPlaylist = async (playlistId) => {
     setLoading(playlistId);
-    fetch(
-      `${website_base_url}/api/playlist/delete-user-playlist?playlistId=${playlistId}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      },
-    )
-      .then((res) => res.json())
+    axiosClient
+      .delete(`/playlist/delete-user-playlist?playlistId=${playlistId}`)
       .then((data) => {
         setUserPlaylist((prev) =>
           prev.filter((playlist) => playlist.playlistId !== playlistId),

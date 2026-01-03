@@ -8,7 +8,7 @@ import { LuPencilLine } from "react-icons/lu";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { useNotification } from "../context/NotificationContext";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function MovieStat({
   movies,
@@ -22,17 +22,9 @@ export default function MovieStat({
     onSetLoading(true);
     console.log("delete");
     try {
-      const response = await fetch(
-        `${website_base_url}/admin/delete/system-film/${systemFilmId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        },
+      const data = await axiosClient.delete(
+        `/admin/delete/system-film/${systemFilmId}`,
       );
-      const data = await response.json();
       let newMovies = movies.filter(
         (movie) => movie.systemFilmId !== systemFilmId,
       );

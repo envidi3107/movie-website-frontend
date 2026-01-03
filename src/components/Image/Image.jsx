@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
 
 const tmdb_image_base_url = import.meta.env.VITE_TMDB_BASE_IMAGE_URL;
@@ -10,12 +11,11 @@ function Image({ id = null, title = null, src = null, belongTo = null }) {
   const [tmdbFilmDetail, setTmdbFilmDetail] = useState(null);
   useEffect(() => {
     const fetchTmdbFilmById = async () => {
-      const res = await fetch(
+      const response = await axios.get(
         `https://api.themoviedb.org/3/movie/${id}?api_key=${api_key}`,
       );
 
-      const data = await res.json();
-      setTmdbFilmDetail(data);
+      setTmdbFilmDetail(response.data);
     };
     if (belongTo === "TMDB_FILM") {
       fetchTmdbFilmById();

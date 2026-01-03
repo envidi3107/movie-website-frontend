@@ -14,9 +14,11 @@ const formatXAxis = (item) => {
   return `${item.day.split("-").reverse().join("/")} ${item.startHour}h-${item.endHour}h`;
 };
 
-const PopularHoursChart = ({ popularHours }) => {
+const PopularHoursChart = ({ viewData }) => {
   // Chuẩn bị dữ liệu
-  const chartData = popularHours.map((item) => ({
+  if (!viewData) return null;
+
+  const chartData = viewData.map((item) => ({
     ...item,
     timeLabel: formatXAxis(item),
   }));

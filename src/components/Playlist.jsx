@@ -8,7 +8,7 @@ import Tooltip from "./Tooltip";
 import LoadingAnimation from "./LoadingAnimation/SpinAnimation/SpinAnimation";
 import { createPortal } from "react-dom";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../libs/axiosClient";
 
 export default function Playlist({ systemFilm, tmdbFilm }) {
   const [addPlaylist, setAddPlaylist] = useState(false);
@@ -22,14 +22,10 @@ export default function Playlist({ systemFilm, tmdbFilm }) {
     e.preventDefault();
     setLoading(true);
     const formData = new FormData(e.target);
-    fetch(
-      `${website_base_url}/api/playlist/create-playlist?playlistName=${formData.get("playlistName")}`,
-      {
-        method: "POST",
-        credentials: "include",
-      },
-    )
-      .then((res) => res.json())
+    axiosClient
+      .post(
+        `/playlist/create-playlist?playlistName=${formData.get("playlistName")}`,
+      )
       .then((data) => {
         console.log(data);
       })

@@ -3,7 +3,7 @@ import React from "react";
 import Header from "../../components/Header/Header.jsx";
 import SideBar from "../../components/SideBar.jsx";
 import PulseAnimation from "../../components/LoadingAnimation/PulseAnimation/PulseAnimation.jsx";
-import { fetchApiWithParams } from "../../services/api_service/FetchMoviesApi.jsx";
+
 import { useNotification } from "../../context/NotificationContext.jsx";
 import MovieList from "../../components/MovieList.jsx";
 import Playlist from "../../components/Playlist.jsx";
@@ -15,7 +15,8 @@ import { usePageTransition } from "../../context/PageTransitionContext.jsx";
 const api_key = import.meta.env.VITE_API_KEY;
 const access_token = import.meta.env.VITE_API_READ_ACCESS_TOKEN;
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
+import axiosClient from "../../libs/axiosClient.js";
+import axios from "axios";
 
 function Home() {
   const [movies, setMovies] = useState();
@@ -46,18 +47,7 @@ function Home() {
     const fetchSystemMovie = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          import.meta.env.VITE_WEBSITE_BASE_URL +
-            "/api/system-films/summary-list?page=" +
-            pageNumber,
-          {
-            credentials: "include",
-          },
-        );
-        if (!res.ok) {
-          throw new Error("Failed to fetch data from the server.");
-        }
-        const data = await res.json();
+        const data = await axiosClient.get("/films/all?page=" + pageNumber);
         data.belong_to = "SYSTEM_FILM";
         initialMovie.current = data;
         setMovies(data);
@@ -83,7 +73,10 @@ function Home() {
           page: pageNumber,
         };
         const url = urlTemplates[menuState.activeMenu][menuState.cinemaType];
-        const data = await fetchApiWithParams(url, params);
+
+        // Use raw axios for TMDB to avoid credentials issues
+        const response = await axios.get(url, { params });
+        const data = response.data;
         data.type = menuState.activeMenu;
         data.belong_to = "TMDB_FILM";
         initialMovie.current = data;
@@ -110,14 +103,12 @@ function Home() {
         };
 
         const [systemFilmData, tmdbFilmData] = await Promise.all([
-          fetch(
-            `${website_base_url}/api/users/get-user-playlist/system-film`,
-            options,
-          ).then((res) => res.json()),
-          fetch(
-            `${website_base_url}/api/users/get-user-playlist/tmdb-film`,
-            options,
-          ).then((res) => res.json()),
+          axiosClient
+            .get("/users/get-user-playlist/system-film")
+            .then((res) => res),
+          axiosClient
+            .get("/users/get-user-playlist/tmdb-film")
+            .then((res) => res),
         ]);
 
         setPlaylist({
@@ -143,14 +134,7 @@ function Home() {
       setLoading(true);
       try {
         const params = new URLSearchParams(queryParam);
-        const res = await fetch(
-          `${website_base_url}/api/system-films/search?${params}`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
-        const data = await res.json();
+        const data = await axiosClient.get(`/system-films/search?${params}`);
         data.belong_to = "SYSTEM_FILM";
         setMovies(data);
       } catch (err) {
@@ -171,11 +155,12 @@ function Home() {
         },
       };
 
-      fetch(
-        `https://api.themoviedb.org/3/search/movie?query=${queryParam.title}&include_adult=false&language=en-US&page=1`,
-        options,
-      )
-        .then((res) => res.json())
+      axios
+        .get(
+          `https://api.themoviedb.org/3/search/movie?query=${queryParam.title}&include_adult=false&language=en-US&page=1`,
+          options,
+        )
+        .then((res) => res.data)
         .then((data) => {
           data.type = menuState.activeMenu;
           data.belong_to = "TMDB_FILM";

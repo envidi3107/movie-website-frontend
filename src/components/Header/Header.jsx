@@ -11,7 +11,6 @@ import {
 } from "react-icons/fa";
 import { MdMovie } from "react-icons/md";
 import { IoMdMail } from "react-icons/io";
-import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUserContext } from "../../context/AuthUserContext";
 import { useNotification } from "../../context/NotificationContext";
@@ -40,6 +39,8 @@ const genres = [
   "Thriller",
 ];
 
+import axiosClient from "../../libs/axiosClient";
+
 const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
 
 const Header = ({ onSearching, onReset, activeMenu }) => {
@@ -55,8 +56,8 @@ const Header = ({ onSearching, onReset, activeMenu }) => {
     releaseDate: "",
   });
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const isLogin = Cookies.get("auth_user")
-    ? JSON.parse(Cookies.get("auth_user"))
+  const isLogin = localStorage.getItem("auth_user")
+    ? JSON.parse(localStorage.getItem("auth_user"))
     : null;
 
   const handleGenreSelect = (genre) => {
@@ -102,46 +103,34 @@ const Header = ({ onSearching, onReset, activeMenu }) => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch(`${website_base_url}/auth/logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
+      await axiosClient.post("/auth/logout");
 
-      if (!res.ok) throw new Error(await res.json().message);
-
-      Cookies.remove("auth_user");
+      localStorage.removeItem("auth_user");
+      localStorage.removeItem("token");
       saveAuthUser(null);
       setIsDropdownOpen(false);
       navigate("/");
     } catch (err) {
-      showNotification("error", err.message);
+      showNotification("error", err.message || err);
     }
   };
 
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const res = await fetch(`${website_base_url}/users/my-info`, {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!res.ok && res.status === 401) {
-          Cookies.remove("auth_user");
+        const data = await axiosClient.get("/users/my-info");
+        localStorage.setItem("auth_user", JSON.stringify(data.results));
+        saveAuthUser(data.results);
+      } catch (err) {
+        if (err.status === 401) {
+          localStorage.removeItem("auth_user");
+          localStorage.removeItem("token");
           window.location.href = "/";
           saveAuthUser(null);
           return;
         }
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message);
-        }
-        const data = await res.json();
-        Cookies.set("auth_user", JSON.stringify(data.results), { expires: 1 });
-        saveAuthUser(data.results);
-      } catch (err) {
-        console.log(err.message);
-        showNotification("error", err.message);
+        console.log(err);
+        showNotification("error", err.message || err);
       }
     };
     if (isLogin && !authUser) fetchUserInfo();

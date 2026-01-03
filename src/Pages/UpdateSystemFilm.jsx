@@ -13,8 +13,8 @@ import CropModal from "../components/CropModal";
 import convertDataURLtoFile from "../utils/convertDataURLtoFile";
 import getCroppedImg from "../utils/cropImage";
 import { useParams } from "react-router-dom";
+import axiosClient from "../libs/axiosClient";
 
-const website_base_url = import.meta.env.VITE_WEBSITE_BASE_URL;
 const genreOptions = [
   "Action",
   "Comedy",
@@ -144,12 +144,12 @@ function UpdateSystemFilm() {
     form.append("poster", formData.current.poster);
     form.append("video", formData.current.video);
 
-    fetch(`${website_base_url}/admin/update/system-film/${systemFilmId}`, {
-      method: "PUT",
-      body: form,
-      credentials: "include",
-    })
-      .then((res) => res.json())
+    axiosClient
+      .put(`/admin/update/system-film/${systemFilmId}`, form, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
       .then((data) => showNotification("success", data.message))
       .catch((err) => showNotification("error", err.message))
       .finally(() => setLoading(false));
@@ -159,19 +159,9 @@ function UpdateSystemFilm() {
     const fetchFilmDetail = async () => {
       setLoading(true);
       try {
-        const options = {
-          method: "GET",
-          credentials: "include",
-        };
-        const res = await fetch(
-          `${website_base_url}/api/system-films/${systemFilmId}/detail`,
-          options,
+        const data = await axiosClient.get(
+          `/system-films/${systemFilmId}/detail`,
         );
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message);
-        }
-        const data = await res.json();
         const film = data.results;
         formData.current = {
           adult: film.adult ?? null,
