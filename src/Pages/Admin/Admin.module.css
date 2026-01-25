@@ -1,0 +1,43 @@
+tbody tr:hover {
+  background-color: #2d2e37;
+}
+
+tbody tr td {
+  height: 60px;
+}
+
+table tr {
+  cursor: pointer;
+  background-color: #26252c;
+}
+
+table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pieChart::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: calc(100% + 30px * 2);
+  transform: translateX(-30px);
+  height: calc(50% + 30px);
+  /* background: linear-gradient(to right, #3C344C, #2E263D); */
+}
+
+.pieChart {
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

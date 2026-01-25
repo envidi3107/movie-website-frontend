@@ -1,0 +1,95 @@
+.entireLoginPage::before {
+  content: "";
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  animation: animateBg 2.5s linear infinite;
+  background-image: url("../../assets/bg.jpg");
+}
+
+.entireLoginPage input {
+  background-color: transparent;
+  border-bottom: 2px solid white;
+  color: white;
+}
+
+.entireLoginPage label {
+  background-color: transparent;
+  color: white;
+}
+
+.waveElement {
+  position: fixed;
+  animation: wave 0.3s linear;
+  border-radius: 50%;
+  background-color: transparent;
+  box-shadow: 0 0 5px 5px rgb(0, 218, 252);
+  width: 13px;
+  height: 13px;
+}
+
+.formLoginBox {
+  animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    transform: translate(-90%, -50%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+}
+
+@keyframes animateBg {
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes wave {
+  0% {
+    transform: scale(0);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.typingText {
+  font-size: 130%;
+  font-weight: bold;
+  background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #5f27cd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.caretElement {
+  display: inline-block;
+  margin: 0px 3px;
+  width: 2px;
+  height: 25px;
+  background-color: white;
+  transform: translateY(3px);
+  animation: blink 0.6s linear infinite;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}

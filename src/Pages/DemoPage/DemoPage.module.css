@@ -1,0 +1,52 @@
+/* ẩn thanh cuộn trên các trình duyệt webkit: chrome, sarafi, opera */
+.defaultTrendingBox::-webkit-scrollbar {
+  display: none;
+}
+/* ẩn thanh cuộn trên fire fox */
+.defaultTrendingBox {
+  scrollbar-width: none;
+}
+/* ẩn thanh cuộn trên IE, Edge */
+.defaultTrendingBox {
+  -ms-overflow-style: none;
+}
+
+.trendingOverviewBox {
+  animation: fadeIn 0.5s linear;
+}
+
+.trendingListOverviewContent {
+  animation: fadeInText 0.3s linear;
+}
+
+@keyframes fadeIn {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInText {
+  0% {
+    transform: translateY(40px);
+    opacity: 0.2;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.trendingListOverviewBox {
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.8) 90%,
+    rgba(0, 0, 0, 0.2) 98%,
+    transparent 100%
+  );
+}
