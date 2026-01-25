@@ -1,7 +1,0 @@
-.playIcon {
-  width: 25px;
-  height: 25px;
-  background: white;
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  transform: translate(-50%, -50%) rotate(90deg);
-}

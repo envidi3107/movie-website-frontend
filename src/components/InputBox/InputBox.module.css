@@ -1,5 +1,0 @@
-.inputElement:not(:placeholder-shown) + .labelElement,
-.inputElement:focus + .labelElement {
-  top: -7px;
-  padding: 0 4px;
-}
