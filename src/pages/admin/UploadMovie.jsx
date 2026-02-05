@@ -38,6 +38,7 @@ export default function UploadMovie() {
     const [showEpisodeForm, setShowEpisodeForm] = useState(false);
     const [currentEpisode, setCurrentEpisode] = useState({
         title: '',
+        description: '',
         videoFile: null,
         videoUrl: '',
         duration: '',
@@ -538,9 +539,30 @@ export default function UploadMovie() {
                                                 <input
                                                     type="text"
                                                     value={currentEpisode.title}
+                                                    name="title"
                                                     onChange={(e) =>
                                                         handleEpisodeChange(
                                                             'title',
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-primary transition-colors"
+                                                    placeholder="Enter episode title"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-white text-sm font-medium mb-2 block">
+                                                    Episode Description *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={
+                                                        currentEpisode.description
+                                                    }
+                                                    onChange={(e) =>
+                                                        handleEpisodeChange(
+                                                            'desciption',
                                                             e.target.value
                                                         )
                                                     }

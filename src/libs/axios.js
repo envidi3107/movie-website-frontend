@@ -21,10 +21,10 @@ axiosClient.interceptors.request.use(
 axiosClient.interceptors.response.use(
     (res) => res.data,
     (error) => {
-        const status = error.response.status || error.status;
+        const status = error.response?.status || error?.status;
 
         switch (status) {
-            case 401:
+            case 401 || 500:
                 localStorage.removeItem('token');
                 window.location.href = '/login';
                 break;

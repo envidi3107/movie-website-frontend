@@ -29,16 +29,18 @@ export default function MyListContent() {
 
     useEffect(() => {
         if (activeTab === 'history') {
-            fetchHistory();
+            fetchHistory('movie');
         } else {
             getUserPlaylists();
         }
     }, [activeTab]);
 
-    const fetchHistory = async () => {
+    const fetchHistory = async (type) => {
+        console.log('type: ', type);
+
         setIsHistoryLoading(true);
         // Error handling is managed by useRequest
-        const res = await get('/watching/history');
+        const res = await get('/watching/history', { type });
         if (res?.results) {
             setHistory(res.results);
         }

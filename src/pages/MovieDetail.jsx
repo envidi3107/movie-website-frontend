@@ -1,65 +1,97 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useRequest from '@/hooks/useRequest';
-import { FaPlay, FaStar, FaCalendar, FaClock, FaList } from 'react-icons/fa';
+import formatDate from '@/utils/formatDate';
+import {
+    FaPlay,
+    FaStar,
+    FaCalendar,
+    FaThumbsUp,
+    FaThumbsDown,
+    FaComments,
+    FaEye,
+} from 'react-icons/fa';
+import { useNotification } from '@/contexts/NotificationContext';
+
+import FilmHeader from '@/components/MovieDetail/FilmHeader';
+import EpisodesList from '@/components/MovieDetail/EpisodesList';
+import PlayerOverlay from '@/components/MovieDetail/PlayerOverlay';
+import SidebarDetails from '@/components/MovieDetail/SidebarDetails';
 
 export default function MovieDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { get } = useRequest();
+    const { get, post } = useRequest();
 
     const [movie, setMovie] = useState(null);
     const [loading, setLoading] = useState(true);
     const [activeEpisode, setActiveEpisode] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [episodeIndex, setEpisodeIndex] = useState(0);
 
-    useEffect(() => {
-        const fetchMovieDetail = async () => {
-            try {
-                const response = await get(`/films/${id}`);
-                // Helper to unwrap response, assuming API might wrap single item in results or result
-                const data =
-                    response?.results ||
-                    response?.result ||
-                    response?.data ||
-                    response;
-                if (data) {
-                    setMovie(data);
-                }
-            } catch (error) {
-                showNotification(error.message, 'error');
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Reaction states
+    const [userFilmReaction, setUserFilmReaction] = useState(null); // 'LIKE' | 'DISLIKE' | null
+    const [episodeReactions, setEpisodeReactions] = useState({}); // { [episodeId]: 'LIKE' | 'DISLIKE' }
+    const [isReacting, setIsReacting] = useState(false);
 
-        if (id) {
-            fetchMovieDetail();
+    // Fetch movie detail - made reusable so we can refresh after reaction
+    const fetchMovieDetail = async () => {
+        try {
+            setLoading(true);
+            const response = await get(`/films/${id}`);
+            const data =
+                response?.results ||
+                response?.result ||
+                response?.data ||
+                response;
+            if (data) setMovie(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
-    }, [id]);
-
-    const handlePlayParams = () => {
-        if (!movie) return null;
-
-        // Try to find video at root
-        let video = movie.videoPath || movie.videoUrl;
-
-        // If not found, checks episodes (common for both Series and sometimes normalized Movies)
-        if (!video && movie.episodes && movie.episodes.length > 0) {
-            video = movie.episodes[0].videoPath || movie.episodes[0].videoUrl;
-        }
-
-        // For SERIES specific logic (if we strictly want to ignore root video for series, though fallback is fine)
-        if (movie.type === 'SERIES' && activeEpisode) {
-            return activeEpisode.videoPath || activeEpisode.videoUrl || video;
-        }
-
-        return video;
     };
 
-    const currentVideoUrl = handlePlayParams();
+    useEffect(() => {
+        if (id) fetchMovieDetail();
+    }, [id]);
 
-    // Helper for images
+    // Fetch user reactions and map to local state
+    const fetchUserReactions = async () => {
+        try {
+            const res = await get('/reaction/get-user-reaction');
+            const results = res?.results || [];
+            // Find film reaction
+            const filmId = movie?.filmId || movie?.id || movie?._id;
+            const filmReaction = results.find((r) => r.film_id === filmId);
+            setUserFilmReaction(
+                filmReaction ? filmReaction.reaction_type : null
+            );
+            // If API returns episode reactions, we could map them here (not specified in example)
+        } catch (err) {
+            console.error('fetchUserReactions error', err);
+        }
+    };
+
+    const { showNotification } = useNotification();
+
+    useEffect(() => {
+        if (movie) fetchUserReactions();
+    }, [movie]);
+
+    // Choose playable video url based on movie / episode selection
+    const getPlayableUrl = () => {
+        if (activeEpisode)
+            return activeEpisode.videoPath || activeEpisode.videoUrl || null;
+        if (movie?.videoPath || movie?.videoUrl)
+            return movie.videoPath || movie.videoUrl;
+        if (movie?.episodes && movie.episodes.length > 0)
+            return movie.episodes[0].videoPath || movie.episodes[0].videoUrl;
+        return null;
+    };
+
+    const playableUrl = getPlayableUrl();
+
     const getBackdrop = () =>
         movie?.backdropPath ||
         movie?.backdropUrl ||
@@ -68,7 +100,7 @@ export default function MovieDetail() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center">
+            <div className="min-h-screen w-screen bg-[#0f0f0f] flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
         );
@@ -82,172 +114,213 @@ export default function MovieDetail() {
         );
     }
 
+    const handlePlayEpisode = (index) => {
+        setEpisodeIndex(index);
+        setActiveEpisode(movie.episodes[index]);
+        setIsPlaying(true);
+    };
+
+    const handleNextEpisode = () => {
+        if (!movie?.episodes) return;
+        const next = Math.min(episodeIndex + 1, movie.episodes.length - 1);
+        handlePlayEpisode(next);
+    };
+
+    const handlePrevEpisode = () => {
+        if (!movie?.episodes) return;
+        const prev = Math.max(episodeIndex - 1, 0);
+        handlePlayEpisode(prev);
+    };
+
+    // Film reaction (LIKE/DISLIKE) — optimistic UI update (no full refresh to update UI)
+    const handleFilmReaction = async (type) => {
+        if (!movie) return;
+        const prev = userFilmReaction;
+        // Toggle: if clicking same type -> remove reaction locally
+        const next = prev === type ? null : type;
+
+        // Optimistically update UI counts
+        setUserFilmReaction(next);
+        setMovie((m) => {
+            if (!m) return m;
+            let likes = m.numberOfLikes ?? 0;
+            let dislikes = m.numberOfDislikes ?? 0;
+
+            if (type === 'LIKE') {
+                if (prev === 'LIKE') likes = Math.max(0, likes - 1);
+                else {
+                    likes = likes + 1;
+                    if (prev === 'DISLIKE')
+                        dislikes = Math.max(0, dislikes - 1);
+                }
+            }
+
+            if (type === 'DISLIKE') {
+                if (prev === 'DISLIKE') dislikes = Math.max(0, dislikes - 1);
+                else {
+                    dislikes = dislikes + 1;
+                    if (prev === 'LIKE') likes = Math.max(0, likes - 1);
+                }
+            }
+
+            return { ...m, numberOfLikes: likes, numberOfDislikes: dislikes };
+        });
+
+        setIsReacting(true);
+        try {
+            // Call backend but don't rely on it to update UI; revert on error
+            await post('/reaction/save-reaction', {
+                filmId: movie.filmId || movie.id || movie._id,
+                reactionType: next || type,
+                reactionTime: new Date().toISOString(),
+            });
+        } catch (err) {
+            // revert on error
+            setUserFilmReaction(prev);
+            await fetchMovieDetail();
+            if (showNotification)
+                showNotification('Failed to save reaction', 'error');
+            console.error('handleFilmReaction error', err);
+        } finally {
+            setIsReacting(false);
+        }
+    };
+
+    // Episode reaction — optimistic per-episode update then refresh counts
+    const handleEpisodeReaction = async (episodeId, type) => {
+        if (!movie) return;
+        const ep = movie.episodes?.find((e) => e.id === episodeId);
+        if (!ep) return;
+
+        const prev = episodeReactions[episodeId] || null;
+        const next = prev === type ? null : type;
+
+        // Optimistic update on UI: update episode counts and local mapping
+        setEpisodeReactions((prevMap) => ({ ...prevMap, [episodeId]: next }));
+        setMovie((m) => {
+            if (!m) return m;
+            const eps = m.episodes.map((e) => {
+                if (e.id !== episodeId) return e;
+                let likeCount = e.likeCount ?? 0;
+                let dislikeCount = e.dislikeCount ?? 0;
+                if (type === 'LIKE') {
+                    if (prev === 'LIKE') likeCount = Math.max(0, likeCount - 1);
+                    else {
+                        likeCount = likeCount + 1;
+                        if (prev === 'DISLIKE')
+                            dislikeCount = Math.max(0, dislikeCount - 1);
+                    }
+                }
+                if (type === 'DISLIKE') {
+                    if (prev === 'DISLIKE')
+                        dislikeCount = Math.max(0, dislikeCount - 1);
+                    else {
+                        dislikeCount = dislikeCount + 1;
+                        if (prev === 'LIKE')
+                            likeCount = Math.max(0, likeCount - 1);
+                    }
+                }
+                return { ...e, likeCount, dislikeCount };
+            });
+            return { ...m, episodes: eps };
+        });
+
+        setIsReacting(true);
+        try {
+            await post('/reaction/save-episode-reaction', {
+                episodeId,
+                reactionType: next || type,
+            });
+            // refresh to ensure counts are consistent
+            await fetchMovieDetail();
+        } catch (err) {
+            // revert mapping
+            setEpisodeReactions((prevMap) => ({
+                ...prevMap,
+                [episodeId]: prev,
+            }));
+            await fetchMovieDetail();
+            if (showNotification)
+                showNotification('Failed to save episode reaction', 'error');
+            console.error('handleEpisodeReaction error', err);
+        } finally {
+            setIsReacting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen w-screen bg-[#0f0f0f] text-white">
-            {/* Hero/Player Section */}
-            <div className="relative w-full h-[60vh] lg:h-[80vh]">
-                {isPlaying && currentVideoUrl ? (
-                    <div className="absolute inset-0 bg-black z-50">
-                        {/* Simple Video Player Placeholder - In real app, consider using a library like react-player or custom controls */}
-                        <video
-                            src={currentVideoUrl}
-                            controls
-                            autoPlay
-                            className="w-full h-full object-contain"
-                        />
-                        <button
-                            onClick={() => setIsPlaying(false)}
-                            className="absolute top-4 left-4 z-50 bg-black/50 px-4 py-2 rounded text-white hover:bg-black/70"
-                        >
-                            Back to Details
-                        </button>
-                    </div>
-                ) : (
-                    <>
-                        <div
-                            className="absolute inset-0 bg-cover bg-center"
-                            style={{ backgroundImage: `url(${getBackdrop()})` }}
-                        >
-                            <div className="absolute inset-0 bg-linear-to-t from-[#0f0f0f] via-[#0f0f0f]/50 to-transparent" />
-                        </div>
-
-                        <div className="absolute bottom-0 left-0 w-full p-8 lg:p-16 z-10">
-                            <div className="max-w-4xl">
-                                <h1 className="text-4xl lg:text-6xl font-bold mb-4">
-                                    {movie.title}
-                                </h1>
-
-                                <div className="flex flex-wrap items-center gap-6 text-sm lg:text-base text-gray-300 mb-6">
-                                    {movie.voteAverage && (
-                                        <div className="flex items-center gap-2 text-yellow-400">
-                                            <FaStar />
-                                            <span>
-                                                {movie.voteAverage.toFixed(1)}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {movie.releaseDate && (
-                                        <div className="flex items-center gap-2">
-                                            <FaCalendar />
-                                            <span>
-                                                {new Date(
-                                                    movie.releaseDate
-                                                ).getFullYear()}
-                                            </span>
-                                        </div>
-                                    )}
-                                    {movie.duration && (
-                                        <div className="flex items-center gap-2">
-                                            <FaClock />
-                                            <span>{movie.duration}</span>
-                                        </div>
-                                    )}
-                                    <div className="px-3 py-1 border border-white/20 rounded-full text-xs">
-                                        {movie.type === 'MOVIE'
-                                            ? 'Movie'
-                                            : 'Series'}
-                                    </div>
-                                </div>
-
-                                <p className="text-gray-300 text-lg mb-8 line-clamp-3 max-w-2xl">
-                                    {movie.overview}
-                                </p>
-
-                                <div className="flex gap-4">
-                                    <button
-                                        onClick={() => setIsPlaying(true)}
-                                        className="flex items-center gap-3 bg-primary hover:bg-primary/80 text-white px-8 py-4 rounded-xl font-bold transition-all transform hover:scale-105"
-                                    >
-                                        <FaPlay />
-                                        Play Now
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
+            {/* Hero */}
+            <div className="relative w-full h-[60vh] lg:h-[70vh] z-0">
+                <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${getBackdrop()})` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0f0f0f] via-[#0a0a0a]/60 to-transparent" />
             </div>
 
-            {/* Content Section */}
-            <div className="max-w-7xl mx-auto px-6 py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    {/* Main Info */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* Genres */}
-                        {movie.genres && (
-                            <div>
-                                <h3 className="text-xl font-bold mb-4 text-gray-200">
-                                    Genres
-                                </h3>
-                                <div className="flex flex-wrap gap-3">
-                                    {(Array.isArray(movie.genres)
-                                        ? movie.genres
-                                        : movie.genres.split(',')
-                                    ).map((genre, idx) => (
-                                        <span
-                                            key={idx}
-                                            className="bg-surface-dark px-4 py-2 rounded-lg text-gray-300 text-sm border border-white/5"
-                                        >
-                                            {typeof genre === 'string'
-                                                ? genre.trim()
-                                                : genre}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Episodes List for Series */}
-                        {movie.type === 'SERIES' &&
-                            movie.episodes &&
-                            movie.episodes.length > 0 && (
-                                <div>
-                                    <h3 className="text-xl font-bold mb-4 flex items-center gap-3 text-gray-200">
-                                        <FaList className="text-primary" />
-                                        Episodes
-                                    </h3>
-                                    <div className="grid gap-3">
-                                        {movie.episodes.map((episode, idx) => (
-                                            <button
-                                                key={episode.id || idx}
-                                                onClick={() => {
-                                                    setActiveEpisode(episode);
-                                                    setIsPlaying(true);
-                                                }}
-                                                className={`flex items-center p-4 rounded-xl transition-all ${
-                                                    activeEpisode?.id ===
-                                                    episode.id
-                                                        ? 'bg-primary/20 border-primary/50'
-                                                        : 'bg-surface-dark hover:bg-[#252525] border-transparent'
-                                                } border border-white/5 group`}
-                                            >
-                                                <div className="shrink-0 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm font-medium mr-4 group-hover:bg-primary group-hover:text-white transition-colors">
-                                                    {idx + 1}
-                                                </div>
-                                                <div className="grow text-left">
-                                                    <h4 className="font-medium text-gray-200 group-hover:text-white transition-colors">
-                                                        {episode.title}
-                                                    </h4>
-                                                    {episode.duration && (
-                                                        <span className="text-xs text-gray-500">
-                                                            {episode.duration}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <FaPlay className="text-white/20 group-hover:text-primary transition-colors" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                    </div>
-
-                    {/* Sidebar / details */}
-                    <div className="space-y-8">
-                        {/* Add more sidebar content like cast, related movies, etc. later */}
-                    </div>
+            <div className="relative mt-[-250px] w-full p-6 lg:p-12 z-100">
+                <div className="max-w-6xl mx-auto">
+                    <FilmHeader
+                        movie={movie}
+                        userFilmReaction={userFilmReaction}
+                        isReacting={isReacting}
+                        onFilmReact={handleFilmReaction}
+                        onPlay={() => {
+                            if (
+                                movie.type === 'SERIES' &&
+                                movie.episodes?.length
+                            ) {
+                                handlePlayEpisode(0);
+                            } else {
+                                setActiveEpisode(null);
+                                setIsPlaying(true);
+                            }
+                        }}
+                    />
                 </div>
             </div>
+
+            {/* Main content */}
+            <div className="max-w-7xl mx-auto px-6 py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Episodes */}
+                        {movie.type === 'SERIES' &&
+                            movie.episodes?.length > 0 && (
+                                <EpisodesList
+                                    episodes={movie.episodes}
+                                    episodeIndex={episodeIndex}
+                                    onPlay={handlePlayEpisode}
+                                    onEpisodeReact={handleEpisodeReaction}
+                                    episodeReactions={episodeReactions}
+                                    isReacting={isReacting}
+                                />
+                            )}
+
+                        {/* Overview / Details */}
+                        <section>
+                            <h2 className="text-xl font-bold mb-3">Overview</h2>
+                            <p className="text-gray-300 leading-relaxed">
+                                {movie.overview}
+                            </p>
+                        </section>
+                    </div>
+
+                    {/* Sidebar */}
+                    <SidebarDetails movie={movie} />
+                </div>
+            </div>
+
+            {/* Player overlay */}
+            <PlayerOverlay
+                isPlaying={isPlaying}
+                playableUrl={playableUrl}
+                activeEpisode={activeEpisode}
+                onClose={() => setIsPlaying(false)}
+                onPrev={handlePrevEpisode}
+                onNext={handleNextEpisode}
+            />
         </div>
     );
 }

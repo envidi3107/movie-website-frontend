@@ -4,14 +4,19 @@ import { useNotification } from '@/contexts/NotificationContext';
 export default function () {
     const { showNotification } = useNotification();
     const handleError = (err) => {
+        console.log('error:', err);
         const message =
-            err.response?.data?.error || err.message || 'The error is unknown';
+            err.response?.data?.message ||
+            err.message ||
+            'The error is unknown';
         showNotification(message, 'error');
     };
 
-    const get = async (url) => {
+    const get = async (url, params) => {
         try {
-            const data = await axiosClient.get(url);
+            const data = await axiosClient.get(url, {
+                params,
+            });
             return data;
         } catch (err) {
             handleError(err);

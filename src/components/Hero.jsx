@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import PlaylistPopup from '@/components/PlaylistPopup';
+import SkeletonHero from '@/components/SkeletonHero';
 
-export default function Hero({ movie }) {
+export default function Hero({ movie, loading = false }) {
     const [showPlaylist, setShowPlaylist] = useState(false);
 
-    if (!movie) return null; // Or a skeleton/loading state
+    if (loading) return <SkeletonHero />;
+    if (!movie) return null;
 
     return (
         <section className="relative w-full h-[85vh] @container">
@@ -29,7 +31,7 @@ export default function Hero({ movie }) {
                                 star
                             </span>
                             <span className="text-sm font-bold text-white">
-                                {movie.voteAverage?.toFixed(1) || 'N/A'}
+                                {movie.rating?.toFixed(1) || 'N/A'}
                             </span>
                             <span className="text-xs text-white/50 ml-1">
                                 ({movie.voteCount} reviews)
@@ -39,9 +41,18 @@ export default function Hero({ movie }) {
                     <h1 className="text-white text-5xl lg:text-8xl font-black leading-none tracking-tighter uppercase italic line-clamp-2">
                         {movie.title}
                     </h1>
-                    <p className="text-white/80 text-base lg:text-lg font-medium leading-relaxed line-clamp-3">
-                        {movie.overview}
-                    </p>
+                    <div className="flex gap-2.5">
+                        {movie?.genres.map((genre, idx) => (
+                            <div className="flex justify-center items-center gap-2.5">
+                                <p className="text-white/80 text-base lg:text-lg font-medium leading-relaxed line-clamp-3 hover:text-red-500">
+                                    {genre}
+                                </p>
+                                {idx < movie?.genres.length - 1 && (
+                                    <div className="w-0.75 h-6.25 bg-gray-400"></div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                     <div className="flex flex-wrap gap-4 mt-4">
                         <Link
                             to={`/film/${movie.filmId}`}

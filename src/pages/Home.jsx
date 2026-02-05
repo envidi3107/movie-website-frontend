@@ -6,6 +6,8 @@ import MovieSection from '@/components/MovieSection';
 import TrendingCard from '@/components/TrendingCard';
 import PosterCard from '@/components/PosterCard';
 import WideCard from '@/components/WideCard';
+import SkeletonHero from '@/components/SkeletonHero';
+import SkeletonCard from '@/components/SkeletonCard';
 import useRequest from '@/hooks/useRequest';
 
 export default function Home() {
@@ -60,7 +62,11 @@ export default function Home() {
                     {/* Trending Row */}
                     <MovieSection title="Trending Now" icon="trending_up">
                         {loading ? (
-                            <div className="text-white">Loading...</div>
+                            <>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <SkeletonCard key={i} variant="poster" />
+                                ))}
+                            </>
                         ) : (
                             trendingMovies.map((movie) => (
                                 <TrendingCard
@@ -86,7 +92,11 @@ export default function Home() {
                     {/* New Releases Row */}
                     <MovieSection title="New Releases">
                         {loading ? (
-                            <div className="text-white">Loading...</div>
+                            <>
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <SkeletonCard key={i} variant="poster" />
+                                ))}
+                            </>
                         ) : (
                             newReleases.map((movie) => (
                                 <PosterCard
@@ -105,7 +115,11 @@ export default function Home() {
                     {/* Recommended Row */}
                     <MovieSection title="Recommended for You">
                         {loading ? (
-                            <div className="text-white">Loading...</div>
+                            <>
+                                {Array.from({ length: 3 }).map((_, i) => (
+                                    <SkeletonCard key={i} variant="wide" />
+                                ))}
+                            </>
                         ) : (
                             recommended.map((movie) => (
                                 <WideCard
